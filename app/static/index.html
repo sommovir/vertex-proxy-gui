@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vertex Studio</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%235b5bd6'/><path d='M9 10l7 13 7-13' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="logo">V</span>
+      <span>Vertex Studio</span>
+    </div>
+    <button class="btn primario largo" id="btn-nuova">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuova conversazione
+    </button>
+    <input class="cerca" id="cerca" type="search" placeholder="Cerca conversazioni…">
+    <nav class="lista" id="lista"></nav>
+    <div class="piede">
+      <button class="stato" id="stato" title="Verifica connessione">
+        <span class="punto"></span><span class="testo">Verifica…</span>
+      </button>
+      <div class="piede-azioni">
+        <button class="btn ghost" id="btn-impostazioni">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Impostazioni
+        </button>
+        <button class="btn ghost icona" id="btn-cartella" title="Apri la cartella dei dati">
+          <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="principale">
+    <header class="testata">
+      <button class="btn ghost icona solo-mobile" id="btn-menu" title="Conversazioni">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <h1 id="titolo" title="Clicca per rinominare">Vertex Studio</h1>
+      <div class="testata-azioni" id="azioni-conv" hidden>
+        <button class="btn ghost icona" id="btn-media" title="Apri la cartella dei file di questa conversazione">
+          <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        </button>
+        <button class="btn ghost icona" id="btn-elimina" title="Sposta nel cestino">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="messaggi" id="messaggi"></section>
+
+    <div class="composer-wrap">
+      <form class="composer" id="composer">
+        <div class="allegati" id="allegati"></div>
+        <textarea id="input" rows="1" placeholder="Scrivi un messaggio…"></textarea>
+        <div class="barra">
+          <div class="segmenti" id="modalita">
+            <button type="button" data-m="chat" class="attivo">Chat</button>
+            <button type="button" data-m="immagine">Immagine</button>
+            <button type="button" data-m="video">Video</button>
+          </div>
+          <select id="modello" title="Modello"></select>
+          <select id="formato" title="Formato" hidden></select>
+          <select id="numero" title="Numero di immagini" hidden>
+            <option value="1">1 immagine</option><option value="2">2 immagini</option>
+            <option value="3">3 immagini</option><option value="4">4 immagini</option>
+          </select>
+          <select id="durata" title="Durata" hidden>
+            <option value="8">8 s</option><option value="6">6 s</option><option value="4">4 s</option>
+          </select>
+          <label class="spunta" id="audio-wrap" hidden><input type="checkbox" id="audio" checked> Audio</label>
+          <span class="spazio"></span>
+          <label class="btn ghost icona" title="Allega file">
+            <input type="file" id="file" multiple hidden>
+            <svg viewBox="0 0 24 24"><path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7L14 4.5a3.3 3.3 0 0 1 4.7 4.7L10.2 17.7a1.7 1.7 0 0 1-2.4-2.4L15.5 7.6"/></svg>
+          </label>
+          <button class="btn primario icona" id="invia" title="Invia (Invio)">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </form>
+      <p class="nota">Tutto resta su questo computer. Le richieste vanno solo a Vertex AI.</p>
+    </div>
+  </main>
+</div>
+
+<dialog id="dlg-impostazioni" class="dialogo">
+  <form method="dialog" class="dlg-corpo" id="form-impostazioni">
+    <header class="dlg-testata">
+      <h2>Impostazioni</h2>
+      <div class="segmenti" id="schede">
+        <button type="button" data-s="profili" class="attivo">Profili</button>
+        <button type="button" data-s="modelli">Modelli</button>
+        <button type="button" data-s="generale">Generale</button>
+      </div>
+    </header>
+    <div class="dlg-contenuto">
+      <section data-scheda="profili">
+        <p class="aiuto">Un profilo per ogni progetto Google Cloud. Il pallino indica quello in uso.
+          L'accesso avviene impersonando il service account: serve aver fatto
+          <code>gcloud auth application-default login</code> con il proprio account.</p>
+        <div id="profili"></div>
+        <button type="button" class="btn ghost" id="add-profilo">+ Aggiungi profilo</button>
+      </section>
+      <section data-scheda="modelli" hidden>
+        <p class="aiuto">Se Google rinomina un modello, correggi qui l'ID. La regione vuota usa quella del profilo.</p>
+        <div class="tabella-modelli" id="modelli"></div>
+        <div class="riga-azioni">
+          <button type="button" class="btn ghost" id="add-modello">+ Aggiungi modello</button>
+          <button type="button" class="btn ghost" id="reset-modelli">Ripristina predefiniti</button>
+        </div>
+      </section>
+      <section data-scheda="generale" hidden>
+        <label class="campo">Istruzioni di sistema (per i modelli Gemini)
+          <textarea id="istruzioni" rows="5" placeholder="Es. Rispondi sempre in italiano."></textarea>
+        </label>
+        <p class="aiuto">Cartella dati: <code id="cartella-dati"></code></p>
+      </section>
+    </div>
+    <footer class="dlg-piede">
+      <span class="errore" id="err-impostazioni"></span>
+      <button type="button" class="btn ghost" id="annulla-impostazioni">Annulla</button>
+      <button type="button" class="btn primario" id="salva-impostazioni">Salva</button>
+    </footer>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" hidden></div>
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>
