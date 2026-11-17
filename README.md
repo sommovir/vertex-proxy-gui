@@ -71,6 +71,17 @@ l'accesso: nel profilo non va scritta nessuna email personale.
 
 Le conversazioni eliminate finiscono in `~/VertexStudio/cestino`.
 
+### Provare altri modelli
+
+- Dal menu dei modelli in chat scegli **＋ Altro modello…** e incolla l'ID così come appare nel
+  Model Garden di Vertex (es. `gemini-4-carbon`, oppure `publishers/google/models/gemini-4-carbon`).
+  L'app lo aggiunge e controlla subito che sia disponibile.
+- In **Impostazioni → Modelli**:
+  - **Verifica modelli** segna ✓/✗ su ogni modello della lista, senza consumare credito;
+  - **Cerca modelli disponibili** elenca i Gemini/Imagen/Veo visibili al progetto e li aggiunge
+    con un clic;
+  - si può anche rinominare, cambiare regione o togliere un modello.
+
 ## Dove sono i dati
 
 ```
@@ -93,6 +104,7 @@ app/
   __main__.py      avvio del server locale (uvicorn su 127.0.0.1)
   main.py          API FastAPI
   account.py       accedi/esci tramite gcloud
+  modelli.py       verifica e ricerca dei modelli disponibili
   impostazioni.py  profili e modelli (file JSON locale)
   vertex.py        credenziali con impersonation e client google-genai
   generazione.py   chat, immagini, video

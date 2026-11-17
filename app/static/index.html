@@ -115,8 +115,11 @@
         <div class="tabella-modelli" id="modelli"></div>
         <div class="riga-azioni">
           <button type="button" class="btn ghost" id="add-modello">+ Aggiungi modello</button>
+          <button type="button" class="btn ghost" id="verifica-modelli">Verifica modelli</button>
+          <button type="button" class="btn ghost" id="cerca-modelli">Cerca modelli disponibili</button>
           <button type="button" class="btn ghost" id="reset-modelli">Ripristina predefiniti</button>
         </div>
+        <div id="disponibili"></div>
       </section>
       <section data-scheda="generale" hidden>
         <label class="campo">Istruzioni di sistema (per i modelli Gemini)
@@ -129,6 +132,36 @@
       <span class="errore" id="err-impostazioni"></span>
       <button type="button" class="btn ghost" id="annulla-impostazioni">Annulla</button>
       <button type="button" class="btn primario" id="salva-impostazioni">Salva</button>
+    </footer>
+  </form>
+</dialog>
+
+<dialog id="dlg-modello" class="dialogo piccolo">
+  <form method="dialog" class="dlg-corpo" id="form-modello">
+    <header class="dlg-testata"><h2>Prova un altro modello</h2></header>
+    <div class="dlg-contenuto">
+      <p class="aiuto">Incolla l'ID del modello come appare nel Model Garden di Vertex
+        (es. <code>gemini-4-carbon</code> o <code>publishers/google/models/gemini-4-carbon</code>).</p>
+      <div class="griglia">
+        <label class="campo intera">ID modello
+          <input type="text" id="nuovo-id" placeholder="gemini-4-carbon" required></label>
+        <label class="campo">Nome da mostrare (facoltativo)
+          <input type="text" id="nuovo-nome" placeholder="Gemini 4 Carbon"></label>
+        <label class="campo">Tipo
+          <select id="nuovo-tipo">
+            <option value="chat">Chat (Gemini)</option>
+            <option value="gemini-immagine">Immagine (Gemini / Nano Banana)</option>
+            <option value="imagen">Immagine (Imagen)</option>
+            <option value="veo">Video (Veo)</option>
+          </select></label>
+        <label class="campo">Regione (vuota = quella del profilo)
+          <input type="text" id="nuovo-regione" placeholder="es. global"></label>
+      </div>
+    </div>
+    <footer class="dlg-piede">
+      <span class="errore" id="err-modello"></span>
+      <button type="button" class="btn ghost" id="annulla-modello">Annulla</button>
+      <button type="submit" class="btn primario" id="salva-modello">Aggiungi e verifica</button>
     </footer>
   </form>
 </dialog>

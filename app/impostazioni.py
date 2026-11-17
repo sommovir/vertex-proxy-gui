@@ -25,7 +25,7 @@ TIPI = ["chat", "gemini-immagine", "imagen", "veo"]
 MODELLI_PREDEFINITI = [
     {"id": "gemini-2.5-flash", "nome": "Gemini 2.5 Flash", "tipo": "chat", "regione": ""},
     {"id": "gemini-2.5-pro", "nome": "Gemini 2.5 Pro", "tipo": "chat", "regione": ""},
-    {"id": "gemini-3-pro-preview", "nome": "Gemini 3 Pro (preview)", "tipo": "chat", "regione": "global"},
+    {"id": "gemini-4-carbon", "nome": "Gemini 4 Carbon", "tipo": "chat", "regione": "global"},
     {"id": "gemini-2.5-flash-image", "nome": "Nano Banana", "tipo": "gemini-immagine", "regione": ""},
     {"id": "gemini-3-pro-image-preview", "nome": "Nano Banana Pro", "tipo": "gemini-immagine", "regione": "global"},
     {"id": "imagen-4.0-generate-001", "nome": "Imagen 4", "tipo": "imagen", "regione": ""},
@@ -73,6 +73,15 @@ def _testo(v) -> str:
     return str(v or "").strip()
 
 
+def normalizza_id(v) -> str:
+    """Accetta anche l'ID copiato dalla console: publishers/google/models/x o google/x."""
+    mid = _testo(v)
+    for prefisso in ("publishers/google/models/", "google/"):
+        if mid.startswith(prefisso):
+            mid = mid[len(prefisso):]
+    return mid
+
+
 def _valida(dati: dict) -> dict:
     profili = []
     for p in dati.get("profili") or []:
@@ -90,7 +99,7 @@ def _valida(dati: dict) -> dict:
 
     modelli = []
     for m in dati.get("modelli") or []:
-        mid = _testo(m.get("id"))
+        mid = normalizza_id(m.get("id"))
         if not mid:
             continue
         tipo = _testo(m.get("tipo"))

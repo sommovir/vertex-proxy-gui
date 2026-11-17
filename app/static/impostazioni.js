@@ -10,7 +10,10 @@ const ETICHETTE_TIPO = {
 };
 
 let bozza = null;
+let esiti = {};
 let alSalvataggio = () => {};
+
+export const normalizzaId = (v) => String(v || "").trim().replace(/^publishers\/google\/models\//, "").replace(/^google\//, "");
 
 export function initImpostazioni(callback) {
   alSalvataggio = callback;
@@ -41,6 +44,16 @@ export function initImpostazioni(callback) {
     bozza.modelli = structuredClone(bozza.predefiniti);
     disegnaModelli();
   };
+  $("#verifica-modelli").onclick = verificaModelli;
+  $("#cerca-modelli").onclick = cercaModelli;
+  $("#disponibili").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-aggiungi]");
+    if (!b) return;
+    leggiForm();
+    bozza.modelli.push(JSON.parse(b.dataset.aggiungi));
+    disegnaModelli();
+    b.replaceWith(Object.assign(document.createElement("small"), { textContent: "aggiunto" }));
+  });
   $("#annulla-impostazioni").onclick = () => dlg.close();
   $("#salva-impostazioni").onclick = salva;
 
@@ -68,6 +81,8 @@ export function initImpostazioni(callback) {
 
 export async function apriImpostazioni(scheda = "profili") {
   bozza = await api("/api/impostazioni");
+  esiti = {};
+  $("#disponibili").innerHTML = "";
   disegnaProfili();
   disegnaModelli();
   $("#istruzioni").value = bozza.istruzioni_sistema || "";
@@ -113,6 +128,7 @@ function disegnaModelli() {
       <select data-k="tipo">${opzioni(m.tipo)}</select>
       <input type="text" data-k="regione" value="${esc(m.regione)}" placeholder="del profilo">
       <button type="button" class="btn ghost icona" data-elimina title="Rimuovi">✕</button>
+      ${esiti[m.id] ? `<div class="esito ${esiti[m.id].ok ? "ok" : "ko"}">${esiti[m.id].ok ? "✓" : "✗"} ${esc(esiti[m.id].messaggio)}</div>` : ""}
     </div>`).join("")}`;
 }
 
@@ -124,8 +140,51 @@ function leggiForm() {
   for (const riga of document.querySelectorAll("#modelli .riga-modello[data-i]")) {
     const m = bozza.modelli[+riga.dataset.i];
     for (const inp of riga.querySelectorAll("[data-k]")) m[inp.dataset.k] = inp.value.trim();
+    m.id = normalizzaId(m.id);
   }
   bozza.istruzioni_sistema = $("#istruzioni").value;
+}
+
+async function verificaModelli() {
+  leggiForm();
+  const btn = $("#verifica-modelli");
+  btn.disabled = true;
+  btn.textContent = "Verifico…";
+  $("#err-impostazioni").textContent = "";
+  try {
+    const r = await api("/api/modelli/verifica", { method: "POST", json: { modelli: bozza.modelli } });
+    esiti = Object.fromEntries(r.map((x) => [x.id, x]));
+    disegnaModelli();
+  } catch (e) {
+    $("#err-impostazioni").textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Verifica modelli";
+  }
+}
+
+async function cercaModelli() {
+  leggiForm();
+  const box = $("#disponibili");
+  const btn = $("#cerca-modelli");
+  btn.disabled = true;
+  box.innerHTML = `<p class="aiuto">Cerco i modelli disponibili sul progetto…</p>`;
+  try {
+    const lista = await api("/api/modelli/disponibili");
+    const presenti = new Set(bozza.modelli.map((m) => m.id));
+    box.className = "disponibili";
+    box.innerHTML = `<h3>${lista.length} modelli disponibili (regioni: global, us-central1)</h3>` + lista.map((m) => {
+      const voce = { id: m.id, nome: m.nome, tipo: m.tipo, regione: m.regioni.includes("global") ? "global" : m.regioni[0] };
+      return `<div class="voce"><code title="${esc(m.id)}">${esc(m.id)}</code>
+        <small>${esc(ETICHETTE_TIPO[m.tipo])} · ${esc(m.regioni.join(", "))}</small>
+        ${presenti.has(m.id) ? "<small>già presente</small>"
+          : `<button type="button" class="btn ghost piccolo" data-aggiungi='${esc(JSON.stringify(voce))}'>Aggiungi</button>`}</div>`;
+    }).join("");
+  } catch (e) {
+    box.innerHTML = `<p class="aiuto" style="color:var(--errore)">${esc(e.message)}</p>`;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function salva() {

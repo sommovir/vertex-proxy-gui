@@ -3,6 +3,7 @@
 import { $, api, esc, markdown, toast, leggiLocale, salvaLocale } from "./util.js";
 import { initImpostazioni, apriImpostazioni } from "./impostazioni.js";
 import { initAccount, aggiornaAccount } from "./account.js";
+import { initModelloRapido, apriModelloRapido, VALORE_ALTRO } from "./modello-rapido.js";
 
 const TIPI_PER_MODALITA = { chat: ["chat"], immagine: ["gemini-immagine", "imagen"], video: ["veo"] };
 const FORMATI = {
@@ -35,6 +36,11 @@ initImpostazioni(async () => {
 });
 
 initAccount(() => verificaStato());
+initModelloRapido(async (m) => {
+  salvaLocale(`vs.modello.${MODALITA_DI_TIPO[m.tipo]}`, m.id);
+  stato.imp = await api("/api/impostazioni");
+  impostaModalita(MODALITA_DI_TIPO[m.tipo]);
+});
 await caricaImpostazioni();
 await caricaElenco();
 verificaStato();
@@ -85,6 +91,8 @@ function impostaModalita(m) {
   $("#modello").innerHTML = modelli.length
     ? modelli.map((x) => `<option value="${esc(x.id)}" ${x.id === scelto ? "selected" : ""}>${esc(x.nome)}</option>`).join("")
     : `<option value="">Nessun modello configurato</option>`;
+  $("#modello").insertAdjacentHTML("beforeend", `<option value="${VALORE_ALTRO}">＋ Altro modello…</option>`);
+  if ($("#modello").value === VALORE_ALTRO) $("#modello").selectedIndex = 0;
   $("#formato").innerHTML = (FORMATI[m] || []).map((f) => `<option>${f}</option>`).join("");
   $("#formato").value = leggiLocale(`vs.formato.${m}`, FORMATI[m]?.[0]) || "";
   $("#input").placeholder = SEGNAPOSTO[m];
@@ -104,7 +112,16 @@ function aggiornaOpzioni() {
 }
 
 $("#modalita").onclick = (e) => e.target.dataset.m && impostaModalita(e.target.dataset.m);
-$("#modello").onchange = () => { salvaLocale(`vs.modello.${stato.modalita}`, $("#modello").value); aggiornaOpzioni(); };
+$("#modello").onchange = () => {
+  if ($("#modello").value === VALORE_ALTRO) {
+    $("#modello").value = leggiLocale(`vs.modello.${stato.modalita}`, null) || "";
+    if (!$("#modello").value) $("#modello").selectedIndex = 0;
+    apriModelloRapido(stato.modalita);
+    return;
+  }
+  salvaLocale(`vs.modello.${stato.modalita}`, $("#modello").value);
+  aggiornaOpzioni();
+};
 $("#formato").onchange = () => salvaLocale(`vs.formato.${stato.modalita}`, $("#formato").value);
 
 // ---------------------------------------------------------------- elenco conversazioni

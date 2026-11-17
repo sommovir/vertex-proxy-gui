@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import account, archivio, generazione, impostazioni, vertex
+from . import account, archivio, generazione, impostazioni, modelli, vertex
 
 STATIC = Path(__file__).parent / "static"
 
@@ -48,6 +48,22 @@ def salva_impostazioni(dati: dict):
         raise HTTPException(400, str(e)) from e
     vertex.azzera()
     return salvate
+
+
+@app.post("/api/modelli/verifica")
+def verifica_modelli(corpo: dict):
+    try:
+        return modelli.verifica(corpo.get("modelli") or [])
+    except RuntimeError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@app.get("/api/modelli/disponibili")
+def modelli_disponibili():
+    try:
+        return modelli.disponibili()
+    except RuntimeError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @app.get("/api/stato")
