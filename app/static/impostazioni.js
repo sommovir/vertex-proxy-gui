@@ -75,6 +75,9 @@ export async function apriImpostazioni(scheda = "profili") {
   $("#err-impostazioni").textContent = "";
   $(`#schede [data-s=${scheda}]`).click();
   $("#dlg-impostazioni").showModal();
+  api("/api/stato").then((s) => {
+    $("#account-attuale").textContent = s.account ? `Login attuale su questo computer: ${s.account}.` : "";
+  }).catch(() => {});
   if (!bozza.profili.length) $("#add-profilo").click();
 }
 
@@ -83,7 +86,7 @@ function disegnaProfili() {
     <div class="profilo ${p.id === bozza.profilo_attivo ? "attivo" : ""}" data-id="${esc(p.id)}">
       <div class="profilo-testa">
         <input type="radio" name="attivo" ${p.id === bozza.profilo_attivo ? "checked" : ""} title="Usa questo profilo">
-        <input type="text" data-k="nome" value="${esc(p.nome)}" placeholder="Nome del profilo">
+        <input type="text" data-k="nome" value="${esc(p.nome)}" placeholder="Nome del profilo (es. CNR-T3)">
         <button type="button" class="btn ghost" data-elimina>Rimuovi</button>
       </div>
       <div class="griglia">

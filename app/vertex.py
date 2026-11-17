@@ -8,6 +8,7 @@ a breve scadenza per conto del service account del profilo attivo.
 import threading
 
 import google.auth
+import requests
 from google import genai
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
@@ -22,6 +23,12 @@ def _credenziali(service_account: str):
     chiave = ("cred", service_account)
     if chiave not in _cache:
         sorgente, _ = google.auth.default(scopes=SCOPES)
+        # Il quota project di gcloud (es. un progetto personale) farebbe addebitare lì la
+        # richiesta di impersonation, che fallisce se lì l'API IAM Credentials è spenta.
+        # Senza quota project la richiesta va sul progetto del service account.
+        if getattr(sorgente, "quota_project_id", None) and hasattr(sorgente, "with_quota_project"):
+            sorgente = sorgente.with_quota_project(None)
+        _cache[("sorgente",)] = sorgente
         if service_account:
             _cache[chiave] = impersonated_credentials.Credentials(
                 source_credentials=sorgente,
@@ -61,9 +68,12 @@ def spiega_errore(e: Exception) -> str:
         return "Login Google mancante. Esegui nel terminale: gcloud auth application-default login"
     if "invalid_grant" in testo or "Reauthentication" in testo:
         return "Login Google scaduto. Esegui nel terminale: gcloud auth application-default login"
+    if "SERVICE_DISABLED" in testo and "iamcredentials" in testo:
+        return ("L'API «IAM Service Account Credentials» non è abilitata sul progetto. "
+                "Va abilitata dalla console Google Cloud. Dettaglio: " + testo)
     if "iam.serviceAccounts.getAccessToken" in testo:
-        return ("Il tuo account non può impersonare questo service account: serve il ruolo "
-                "«Service Account Token Creator». Dettaglio: " + testo)
+        return ("Questo account non può impersonare il service account: gli serve il ruolo "
+                "«Service Account Token Creator» (oppure accedi con un account che ce l'ha).")
     return testo
 
 
@@ -71,14 +81,39 @@ def errore_di_accesso(e: Exception) -> bool:
     return isinstance(e, google.auth.exceptions.GoogleAuthError)
 
 
+def _chi_sono() -> str:
+    """Email dell'account Google con cui è stato fatto il login gcloud su questo computer."""
+    sorgente = _cache.get(("sorgente",))
+    try:
+        if getattr(sorgente, "token", None):
+            r = requests.get("https://oauth2.googleapis.com/tokeninfo",
+                             params={"access_token": sorgente.token}, timeout=10)
+            return r.json().get("email", "") if r.ok else ""
+    except requests.RequestException:
+        pass
+    return ""
+
+
 def verifica(profilo: dict) -> dict:
-    """Prova a ottenere un token. Ritorna {ok, messaggio}."""
+    """Prova a ottenere un token. Ritorna {ok, messaggio, account}."""
+    sa = profilo.get("service_account", "")
     try:
         with _lock:
-            cred = _credenziali(profilo.get("service_account", ""))
+            cred = _credenziali(sa)
+            sorgente = _cache[("sorgente",)]
+        if sa:
+            sorgente.refresh(Request())
+        account = _chi_sono()
         cred.refresh(Request())
-        chi = profilo.get("service_account") or "credenziali personali (senza impersonation)"
-        return {"ok": True, "messaggio": f"Connesso come {chi}"}
+        if sa:
+            return {"ok": True, "account": account,
+                    "messaggio": f"{account or 'Il tuo account'} sta usando il service account {sa}"}
+        return {"ok": True, "account": account,
+                "messaggio": f"Connesso come {account or 'utente'} (senza impersonation)"}
     except Exception as e:  # noqa: BLE001 - mostriamo all'utente il motivo
+        account = _chi_sono()
         azzera()
-        return {"ok": False, "messaggio": spiega_errore(e)}
+        msg = spiega_errore(e)
+        if account:
+            msg = f"Login gcloud attuale: {account}. " + msg
+        return {"ok": False, "account": account, "messaggio": msg}

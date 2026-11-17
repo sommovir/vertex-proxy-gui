@@ -56,7 +56,8 @@ async function verificaStato() {
   try {
     const s = await api("/api/stato");
     el.classList.add(s.ok ? "ok" : "ko");
-    el.querySelector(".testo").textContent = s.ok ? `${s.profilo} · connesso` : (s.profilo ? `${s.profilo} · non connesso` : "Nessun profilo");
+    const chi = s.account ? ` · ${s.account}` : "";
+    el.querySelector(".testo").textContent = s.ok ? `${s.profilo}${chi}` : (s.profilo ? `${s.profilo} · non connesso` : "Nessun profilo");
     el.title = s.messaggio;
     if (!s.ok && s.profilo) toast(s.messaggio);
   } catch (e) {

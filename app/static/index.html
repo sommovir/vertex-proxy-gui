@@ -99,9 +99,11 @@
     </header>
     <div class="dlg-contenuto">
       <section data-scheda="profili">
-        <p class="aiuto">Un profilo per ogni progetto Google Cloud. Il pallino indica quello in uso.
-          L'accesso avviene impersonando il service account: serve aver fatto
-          <code>gcloud auth application-default login</code> con il proprio account.</p>
+        <p class="aiuto">Un profilo per ogni progetto Google Cloud; il pallino indica quello in uso.
+          <b>Chi accede non si scrive qui</b>: è l'account Google con cui è stato fatto
+          <code>gcloud auth application-default login</code> su questo computer, e deve avere il ruolo
+          «Service Account Token Creator» sul service account.
+          <span id="account-attuale"></span></p>
         <div id="profili"></div>
         <button type="button" class="btn ghost" id="add-profilo">+ Aggiungi profilo</button>
       </section>
