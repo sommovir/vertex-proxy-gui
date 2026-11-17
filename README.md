@@ -14,7 +14,8 @@ su **Mac e Windows**, senza API key e senza chiavi JSON.
 ## Prerequisiti (una volta sola)
 
 1. **Python 3.10 o superiore**: <https://www.python.org/downloads/>
-   (su Windows spunta "Add python.exe to PATH").
+   (su Windows spunta "Add python.exe to PATH"; su Mac il `python3` preinstallato con gli
+   strumenti di Xcode è spesso la 3.9, troppo vecchia: installa quello di python.org).
 2. **Google Cloud CLI**: <https://cloud.google.com/sdk/docs/install>
 3. Un amministratore del progetto deve dare al tuo account il permesso di impersonare il
    service account:
@@ -38,6 +39,27 @@ cd vertex-proxy-gui
 
 Per aggiornare a una versione nuova: `git pull` nella stessa cartella, poi riavvia l'app.
 I dati in `~/VertexStudio` non vengono toccati.
+
+### Cartella copiata da un altro computer (es. da Windows a Mac)
+
+Funziona, con tre accortezze:
+
+- **L'accesso Google non viaggia con la cartella**: sta nel computer, nella configurazione di
+  gcloud. Sul nuovo computer basta premere **Accedi**.
+- **Profili e conversazioni non viaggiano con la cartella**: stanno in `~/VertexStudio`.
+  Si ricrea il profilo dalle Impostazioni, oppure si copia anche `~/VertexStudio/impostazioni.json`.
+- **Su Mac, se il doppio clic su `avvia.command` non fa niente o dice «permesso negato»**: copiando
+  da Windows (chiavetta, zip, cloud) si perde il permesso di esecuzione. Da terminale, nella cartella:
+
+  ```bash
+  chmod +x avvia.command
+  ```
+
+  Se macOS dice che il file «proviene da Internet» o «non può essere verificato»: tasto destro →
+  *Apri* → *Apri*. In alternativa si può sempre avviare da terminale con `bash avvia.command`.
+
+La cartella `.venv` copiata da un altro sistema non funziona: `avvia` se ne accorge e la ricrea
+da sola al primo avvio (circa un minuto). Copiandola, conviene comunque lasciarla fuori.
 
 ## Avvio
 

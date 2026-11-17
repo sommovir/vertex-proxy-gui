@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import threading
+from pathlib import Path
 
 from . import vertex
 
@@ -20,8 +21,30 @@ _lock = threading.Lock()
 _login = {"stato": "fermo", "messaggio": ""}  # fermo | in_corso | fatto | errore
 
 
+# Dove l'installer ufficiale e Homebrew mettono gcloud, se non è nel PATH
+# (es. app avviata con doppio clic prima di riaprire il terminale dopo l'installazione).
+_PERCORSI_NOTI = [
+    "~/google-cloud-sdk/bin/gcloud",
+    "/opt/homebrew/bin/gcloud",
+    "/opt/homebrew/share/google-cloud-sdk/bin/gcloud",
+    "/usr/local/bin/gcloud",
+    "/usr/local/share/google-cloud-sdk/bin/gcloud",
+    "/usr/lib/google-cloud-sdk/bin/gcloud",
+    "~/AppData/Local/Google/Cloud SDK/google-cloud-sdk/bin/gcloud.cmd",
+    "C:/Program Files (x86)/Google/Cloud SDK/google-cloud-sdk/bin/gcloud.cmd",
+    "C:/Program Files/Google/Cloud SDK/google-cloud-sdk/bin/gcloud.cmd",
+]
+
+
 def _gcloud() -> str | None:
-    return shutil.which("gcloud.cmd" if sys.platform.startswith("win") else "gcloud") or shutil.which("gcloud")
+    trovato = shutil.which("gcloud.cmd" if sys.platform.startswith("win") else "gcloud") or shutil.which("gcloud")
+    if trovato:
+        return trovato
+    for p in _PERCORSI_NOTI:
+        percorso = Path(p).expanduser()
+        if percorso.is_file():
+            return str(percorso)
+    return None
 
 
 def _esegui(argomenti: list[str], timeout: int) -> subprocess.CompletedProcess:

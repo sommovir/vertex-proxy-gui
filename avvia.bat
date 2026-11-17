@@ -4,6 +4,12 @@ cd /d "%~dp0"
 
 if exist .venv\Scripts\python.exe goto installa
 
+rem Cartella copiata da Mac/Linux: quella .venv non funziona su Windows, la si ricrea.
+if exist .venv (
+  echo Trovato un ambiente creato su un altro sistema: lo ricreo per questo computer...
+  rmdir /s /q .venv
+)
+
 set "PY="
 where py >nul 2>nul && set "PY=py -3"
 if not defined PY where python >nul 2>nul && set "PY=python"

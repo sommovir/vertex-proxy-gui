@@ -2,6 +2,12 @@
 # Vertex Studio - avvio su macOS (doppio clic) o Linux (./avvia.command)
 cd "$(dirname "$0")" || exit 1
 
+# Cartella copiata da Windows: quella .venv non funziona su Mac/Linux, la si ricrea.
+if [ -d .venv ] && [ ! -x .venv/bin/python ]; then
+  echo "Trovato un ambiente creato su un altro sistema: lo ricreo per questo computer..."
+  rm -rf .venv
+fi
+
 if [ ! -x .venv/bin/python ]; then
   PY="$(command -v python3)"
   if [ -z "$PY" ]; then
