@@ -61,6 +61,8 @@ def _tipo(nome: str) -> str | None:
         return "veo"
     if n.startswith("imagen"):
         return "imagen"
+    if n.startswith("gemini-omni"):
+        return "omni"
     if n.startswith("gemini"):
         return "gemini-immagine" if "image" in n else "chat"
     return None
@@ -88,7 +90,7 @@ def disponibili() -> list[dict]:
         errori.append(f"Anthropic: {vertex.spiega_errore(e)[:200]}")
     if not trovati and errori:
         raise RuntimeError("Ricerca non riuscita. " + " | ".join(errori))
-    ordine = {"chat": 0, "claude": 1, "gemini-immagine": 2, "imagen": 3, "veo": 4}
+    ordine = {"chat": 0, "claude": 1, "gemini-immagine": 2, "imagen": 3, "veo": 4, "omni": 5}
     return sorted(trovati.values(), key=lambda v: (ordine[v["tipo"]], v["id"]))
 
 

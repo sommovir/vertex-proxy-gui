@@ -8,6 +8,7 @@ const ETICHETTE_TIPO = {
   "gemini-immagine": "Immagine (Gemini / Nano Banana)",
   "imagen": "Immagine (Imagen)",
   "veo": "Video (Veo)",
+  "omni": "Video (Gemini Omni)",
 };
 
 let bozza = null;

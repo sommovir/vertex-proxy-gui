@@ -17,6 +17,7 @@ export function initModelloRapido(callback) {
     if (id.startsWith("claude")) $("#nuovo-tipo").value = "claude";
     else if (id.startsWith("imagen")) $("#nuovo-tipo").value = "imagen";
     else if (id.startsWith("veo")) $("#nuovo-tipo").value = "veo";
+    else if (id.startsWith("gemini-omni")) $("#nuovo-tipo").value = "omni";
     else if (id.startsWith("gemini") && id.includes("image")) $("#nuovo-tipo").value = "gemini-immagine";
   };
   $("#form-modello").onsubmit = (e) => { e.preventDefault(); aggiungi(); };

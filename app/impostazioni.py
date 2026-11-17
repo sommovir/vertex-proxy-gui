@@ -20,7 +20,8 @@ FILE = CARTELLA_DATI / "impostazioni.json"
 #   imagen           -> Imagen, testo -> immagine
 #   veo              -> Veo, testo/immagine -> video
 #   claude           -> Claude (Anthropic) su Vertex, chat con allegati
-TIPI = ["chat", "claude", "gemini-immagine", "imagen", "veo"]
+#   omni             -> Gemini Omni, video da testo/immagini/riferimenti e modifica di video
+TIPI = ["chat", "claude", "gemini-immagine", "imagen", "veo", "omni"]
 
 # Elenco aggiornato al 17/11/2026 (fonte: pagina «Model versions and lifecycle» di Vertex AI).
 # I nomi cambiano nel tempo: si correggono o si aggiungono dal pannello Impostazioni → Modelli.
@@ -37,6 +38,7 @@ MODELLI_PREDEFINITI = [
     {"id": "gemini-3-pro-image", "nome": "Nano Banana Pro", "tipo": "gemini-immagine", "regione": ""},
     {"id": "gemini-nano-banana-2.1", "nome": "Nano Banana 2.1", "tipo": "gemini-immagine", "regione": ""},
     {"id": "gemini-3.1-flash-lite-image", "nome": "Nano Banana 2 Lite (economico)", "tipo": "gemini-immagine", "regione": ""},
+    {"id": "gemini-omni-1.2-flash", "nome": "Gemini Omni 1.2 Flash", "tipo": "omni", "regione": "global"},
     {"id": "veo-3.1-generate-001", "nome": "Veo 3.1", "tipo": "veo", "regione": ""},
     {"id": "veo-3.1-fast-generate-001", "nome": "Veo 3.1 Fast", "tipo": "veo", "regione": ""},
 ]
@@ -52,7 +54,7 @@ MODELLI_RITIRATI = {
 
 # Da aumentare quando si aggiorna MODELLI_PREDEFINITI: le installazioni esistenti ricevono
 # una volta sola i modelli nuovi (quelli aggiunti o tolti a mano restano come sono).
-VERSIONE_MODELLI = 3
+VERSIONE_MODELLI = 4
 
 _lock = threading.Lock()
 
@@ -197,6 +199,6 @@ def modello(mid: str, dati: dict | None = None) -> dict | None:
 def regione_per(modello_cfg: dict, profilo: dict) -> str:
     if modello_cfg.get("regione"):
         return modello_cfg["regione"]
-    if modello_cfg["tipo"] in ("chat", "claude", "gemini-immagine"):
+    if modello_cfg["tipo"] in ("chat", "claude", "gemini-immagine", "omni"):
         return profilo["regione_gemini"]
     return profilo["regione"]

@@ -89,10 +89,17 @@ l'accesso: nel profilo non va scritta nessuna email personale.
 - **Immagine**: *Nano Banana* genera e modifica le immagini e ricorda la conversazione: allega
   una foto o premi "Riusa immagine" e chiedi le modifiche. Imagen è stato ritirato da Google
   (giugno 2026), ma il tipo resta disponibile se ne servisse uno.
-- **Video**: Veo 3.1, da testo o da un'immagine di partenza allegata. Ci vogliono 1–3 minuti.
+- **Video**: Veo 3.1 e Gemini Omni 1.2 Flash. Ci vogliono 1–3 minuti. Su ogni immagine allegata
+  scegli il ruolo dal menu che compare sotto l'anteprima:
+  - **Primo fotogramma** (e con Veo anche **Ultimo fotogramma**): il video parte (e finisce) da lì;
+  - **Riferimento**: personaggi, oggetti o scene da mantenere coerenti
+    (Veo fino a 3, Omni fino a 6; non si combinano con primo/ultimo fotogramma).
+  - Con **Omni** puoi anche allegare un **video** (max 15 s) e scrivere cosa cambiare: lo modifica,
+    eventualmente con 1–2 immagini di riferimento. Omni fa clip da 5 a 15 secondi con audio.
+  - Primo+ultimo fotogramma e riferimenti con Veo richiedono 8 secondi (impostati in automatico).
 
 I modelli predefiniti sono aggiornati al 17/11/2026: Gemini 4 Carbon/Argon, Gemini 3.8 Flash,
-Claude Opus/Sonnet/Haiku 5.5, Nano Banana 2/Pro/2.1, Veo 3.1. Quando l'app si aggiorna con
+Claude Opus/Sonnet/Haiku 5.5, Nano Banana 2/Pro/2.1, Veo 3.1, Gemini Omni 1.2 Flash. Quando l'app si aggiorna con
 `git pull`, i modelli nuovi vengono aggiunti alla tua lista e quelli ritirati tolti; quelli
 che hai aggiunto tu restano.
 
@@ -134,6 +141,7 @@ app/
   account.py       accedi/esci tramite gcloud
   modelli.py       verifica e ricerca dei modelli disponibili
   claude.py        chat con Claude (SDK anthropic[vertex])
+  omni.py          video con Gemini Omni (Interactions API)
   impostazioni.py  profili e modelli (file JSON locale)
   vertex.py        credenziali con impersonation e client google-genai
   generazione.py   chat, immagini, video

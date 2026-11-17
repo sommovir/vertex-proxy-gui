@@ -11,7 +11,7 @@ import uuid
 
 from google.genai import types
 
-from . import archivio, claude, impostazioni, vertex
+from . import archivio, claude, impostazioni, omni, vertex
 
 MAX_MESSAGGI_CONTESTO = 20
 MESSAGGI_CON_FILE = 6          # solo gli ultimi N messaggi rimandano i propri file
@@ -67,6 +67,8 @@ def _esegui(job_id, conv_id, modello_id, testo, allegati, opzioni):
             risposta = _chat(client, m, conv_id, imp["istruzioni_sistema"], immagini=True, opzioni=opzioni)
         elif m["tipo"] == "imagen":
             risposta = _imagen(client, m, conv_id, testo, opzioni)
+        elif m["tipo"] == "omni":
+            risposta = omni.genera(client, m, conv_id, testo, allegati, opzioni)
         else:
             risposta = _veo(client, m, conv_id, testo, allegati, opzioni)
 
@@ -163,19 +165,45 @@ def _imagen(client, m, conv_id, testo, opzioni) -> dict:
     return {"testo": "", "file": file}
 
 
+def _immagine(conv_id: str, f: dict) -> types.Image:
+    return types.Image(image_bytes=archivio.percorso_file(conv_id, f["nome"]).read_bytes(), mime_type=f["mime"])
+
+
 def _veo(client, m, conv_id, testo, allegati, opzioni) -> dict:
-    immagine = None
-    for f in allegati:
-        if f["mime"].startswith("image/"):
-            dati = archivio.percorso_file(conv_id, f["nome"]).read_bytes()
-            immagine = types.Image(image_bytes=dati, mime_type=f["mime"])
-            break
+    # Ruoli degli allegati scelti nell'interfaccia: partenza, fine, riferimento.
+    ruoli = opzioni.get("ruoli") or []
+    immagini = [(f, ruoli[i] if i < len(ruoli) else "") for i, f in enumerate(allegati) if f["mime"].startswith("image/")]
+    partenza = next((f for f, r in immagini if r == "partenza"), None)
+    fine = next((f for f, r in immagini if r == "fine"), None)
+    riferimenti = [f for f, r in immagini if r == "riferimento"]
+    if not ruoli and immagini:  # nessun ruolo indicato: la prima immagine è il primo fotogramma
+        partenza = immagini[0][0]
+
+    if riferimenti and (partenza or fine):
+        raise RuntimeError("Veo non combina immagini di riferimento con primo/ultimo fotogramma: scegli uno dei due modi.")
+    if fine and not partenza:
+        raise RuntimeError("Per l'ultimo fotogramma serve anche un'immagine di partenza.")
+    if len(riferimenti) > 3:
+        raise RuntimeError("Veo accetta al massimo 3 immagini di riferimento.")
+    immagine = _immagine(conv_id, partenza) if partenza else None
     if not testo and not immagine:
         raise RuntimeError("Scrivi una descrizione del video o allega un'immagine di partenza.")
+    if any(f["mime"].startswith("video/") for f in allegati):
+        raise RuntimeError("Veo non modifica video esistenti: per modificare un video usa Gemini Omni.")
 
     config = {"number_of_videos": 1, "aspect_ratio": opzioni.get("formato") or "16:9"}
     if opzioni.get("durata"):
         config["duration_seconds"] = int(opzioni["durata"])
+    if opzioni.get("risoluzione"):
+        config["resolution"] = opzioni["risoluzione"]
+    if fine:
+        config["last_frame"] = _immagine(conv_id, fine)
+    if riferimenti:
+        config["reference_images"] = [
+            types.VideoGenerationReferenceImage(image=_immagine(conv_id, f), reference_type="ASSET")
+            for f in riferimenti]
+    if fine or riferimenti:
+        config["duration_seconds"] = 8  # primo/ultimo fotogramma e riferimenti richiedono 8 secondi
     if "audio" in opzioni:
         config["generate_audio"] = bool(opzioni["audio"])
     # Nessun output_gcs_uri: il video torna nella risposta e resta solo in locale.

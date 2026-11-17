@@ -5,7 +5,7 @@ import { initImpostazioni, apriImpostazioni } from "./impostazioni.js";
 import { initAccount, aggiornaAccount } from "./account.js";
 import { initModelloRapido, apriModelloRapido, VALORE_ALTRO } from "./modello-rapido.js";
 
-const TIPI_PER_MODALITA = { chat: ["chat", "claude"], immagine: ["gemini-immagine", "imagen"], video: ["veo"] };
+const TIPI_PER_MODALITA = { chat: ["chat", "claude"], immagine: ["gemini-immagine", "imagen"], video: ["veo", "omni"] };
 const FORMATI = {
   immagine: ["1:1", "16:9", "9:16", "4:3", "3:4"],
   video: ["16:9", "9:16"],
@@ -13,9 +13,16 @@ const FORMATI = {
 const SEGNAPOSTO = {
   chat: "Scrivi un messaggio…",
   immagine: "Descrivi l'immagine da creare, o allegane una da modificare…",
-  video: "Descrivi il video (puoi allegare un'immagine di partenza)…",
+  video: "Descrivi il video. Puoi allegare immagini (primo/ultimo fotogramma o riferimenti) o, con Omni, un video da modificare…",
 };
-const MODALITA_DI_TIPO = { "chat": "chat", "claude": "chat", "gemini-immagine": "immagine", "imagen": "immagine", "veo": "video" };
+const MODALITA_DI_TIPO = { "chat": "chat", "claude": "chat", "gemini-immagine": "immagine", "imagen": "immagine", "veo": "video", "omni": "video" };
+const DURATE = { veo: [8, 6, 4], omni: [8, 5, 10, 15] };
+// Ruoli possibili per le immagini allegate in modalità Video.
+const RUOLI = {
+  veo: [["partenza", "Primo fotogramma"], ["fine", "Ultimo fotogramma"], ["riferimento", "Riferimento"]],
+  omni: [["partenza", "Primo fotogramma"], ["riferimento", "Riferimento"]],
+};
+
 
 const stato = {
   imp: null,
@@ -119,10 +126,22 @@ function modelloScelto() {
 
 function aggiornaOpzioni() {
   const tipo = modelloScelto()?.tipo;
+  const video = tipo === "veo" || tipo === "omni";
   $("#formato").hidden = stato.modalita === "chat";
   $("#numero").hidden = tipo !== "imagen";
-  $("#durata").hidden = tipo !== "veo";
+  $("#durata").hidden = !video;
+  $("#risoluzione").hidden = !video;
   $("#audio-wrap").hidden = tipo !== "veo";
+  if (video) {
+    const prima = $("#durata").value;
+    $("#durata").innerHTML = DURATE[tipo].map((d) => `<option value="${d}">${d} s</option>`).join("");
+    if (DURATE[tipo].includes(+prima)) $("#durata").value = prima;
+  }
+  disegnaAllegati();
+}
+
+function ruoliCorrenti() {
+  return RUOLI[modelloScelto()?.tipo] || null;
 }
 
 $("#modalita").onclick = (e) => e.target.dataset.m && impostaModalita(e.target.dataset.m);
@@ -281,7 +300,7 @@ function durata(inizio) {
 
 function htmlAttesa(a) {
   if (a.tipo === "chat" || a.tipo === "claude") return `<div class="msg modello attesa"><span class="puntini"><span></span><span></span><span></span></span></div>`;
-  const cosa = a.tipo === "veo" ? "Genero il video (di solito 1–3 minuti)" : "Genero l'immagine";
+  const cosa = a.tipo === "veo" || a.tipo === "omni" ? "Genero il video (di solito 1–3 minuti)" : "Genero l'immagine";
   return `<div class="msg modello"><div class="attesa"><div class="scheletro"></div>
     <span>${cosa}… <span data-inizio="${a.inizio}">${durata(a.inizio)}</span></span></div></div>`;
 }
@@ -300,7 +319,7 @@ function disegnaMessaggi() {
   if (!stato.messaggi.length && !attese.length) {
     box.innerHTML = `<div class="benvenuto">
       <h2>Cosa creiamo oggi?</h2>
-      <p>Chat con Gemini e Claude, immagini con Nano Banana, video con Veo. Tutto salvato solo su questo computer.</p>
+      <p>Chat con Gemini e Claude, immagini con Nano Banana, video con Veo e Gemini Omni. Tutto salvato solo su questo computer.</p>
       <div class="suggerimenti">
         <button data-esempio="chat|Riassumi in 5 punti i vantaggi dell'impersonation dei service account">
           <b>Chat</b><span>Riassumi i vantaggi dell'impersonation…</span></button>
@@ -360,7 +379,13 @@ $("#messaggi").onclick = async (e) => {
 // ---------------------------------------------------------------- allegati
 
 function aggiungiAllegati(files) {
-  stato.allegati.push(...files);
+  for (const f of files) {
+    if (f.type.startsWith("image/")) {
+      const haPartenza = stato.allegati.some((x) => x._ruolo === "partenza");
+      f._ruolo = haPartenza ? "riferimento" : "partenza";
+    }
+    stato.allegati.push(f);
+  }
   disegnaAllegati();
 }
 
@@ -377,6 +402,17 @@ function disegnaAllegati() {
       el.append(img);
     } else {
       el.textContent = f.name.slice(0, 24);
+    }
+    const ruoli = ruoliCorrenti();
+    if (ruoli && f.type.startsWith("image/")) {
+      if (!ruoli.some(([v]) => v === f._ruolo)) f._ruolo = "riferimento";
+      const sel = document.createElement("select");
+      sel.className = "ruolo";
+      sel.title = "Come usare questa immagine nel video";
+      sel.innerHTML = ruoli.map(([v, t]) => `<option value="${v}" ${v === f._ruolo ? "selected" : ""}>${t}</option>`).join("");
+      sel.onchange = () => { f._ruolo = sel.value; };
+      el.classList.add("con-ruolo");
+      el.append(sel);
     }
     const x = document.createElement("button");
     x.type = "button";
@@ -423,7 +459,12 @@ composer.onsubmit = async (e) => {
   const opzioni = {};
   if (!$("#formato").hidden) opzioni.formato = $("#formato").value;
   if (!$("#numero").hidden) opzioni.numero = +$("#numero").value;
-  if (!$("#durata").hidden) { opzioni.durata = +$("#durata").value; opzioni.audio = $("#audio").checked; }
+  if (!$("#durata").hidden) {
+    opzioni.durata = +$("#durata").value;
+    opzioni.risoluzione = $("#risoluzione").value;
+    opzioni.ruoli = stato.allegati.map((f) => (f.type.startsWith("image/") ? f._ruolo || "" : ""));
+  }
+  if (!$("#audio-wrap").hidden) opzioni.audio = $("#audio").checked;
 
   const fd = new FormData();
   fd.append("modello", m.id);
