@@ -2,6 +2,7 @@
 
 import { $, api, esc, markdown, toast, leggiLocale, salvaLocale } from "./util.js";
 import { initImpostazioni, apriImpostazioni } from "./impostazioni.js";
+import { initAccount, aggiornaAccount } from "./account.js";
 
 const TIPI_PER_MODALITA = { chat: ["chat"], immagine: ["gemini-immagine", "imagen"], video: ["veo"] };
 const FORMATI = {
@@ -33,6 +34,7 @@ initImpostazioni(async () => {
   toast("Impostazioni salvate");
 });
 
+initAccount(() => verificaStato());
 await caricaImpostazioni();
 await caricaElenco();
 verificaStato();
@@ -55,11 +57,12 @@ async function verificaStato() {
   el.title = "";
   try {
     const s = await api("/api/stato");
+    aggiornaAccount(s);
     el.classList.add(s.ok ? "ok" : "ko");
     const chi = s.account ? ` · ${s.account}` : "";
     el.querySelector(".testo").textContent = s.ok ? `${s.profilo}${chi}` : (s.profilo ? `${s.profilo} · non connesso` : "Nessun profilo");
     el.title = s.messaggio;
-    if (!s.ok && s.profilo) toast(s.messaggio);
+    if (!s.ok && s.profilo && s.account) toast(s.messaggio);
   } catch (e) {
     el.classList.add("ko");
     el.querySelector(".testo").textContent = "Errore";

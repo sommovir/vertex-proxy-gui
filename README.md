@@ -16,13 +16,7 @@ su **Mac e Windows**, senza API key e senza chiavi JSON.
 1. **Python 3.10 o superiore**: <https://www.python.org/downloads/>
    (su Windows spunta "Add python.exe to PATH").
 2. **Google Cloud CLI**: <https://cloud.google.com/sdk/docs/install>
-3. Fai il login con il tuo account:
-
-   ```bash
-   gcloud auth application-default login
-   ```
-
-4. Un amministratore del progetto deve dare al tuo account il permesso di impersonare il
+3. Un amministratore del progetto deve dare al tuo account il permesso di impersonare il
    service account:
 
    ```bash
@@ -42,8 +36,16 @@ su **Mac e Windows**, senza API key e senza chiavi JSON.
 Al primo avvio vengono installate le librerie in `.venv` (circa un minuto). Poi si apre il browser su
 <http://127.0.0.1:8765>. L'app ascolta solo su questo computer.
 
-Al primo avvio si apre il pannello Impostazioni: aggiungi un profilo con ID progetto e service
-account. Il pallino in basso a sinistra diventa verde quando la connessione funziona.
+Al primo avvio:
+
+1. premi **Accedi** in basso a sinistra e scegli il tuo account Google nella pagina che si apre.
+   Dietro le quinte l'app esegue `gcloud auth application-default login`. **Esci** revoca
+   l'accesso da quel computer.
+2. nel pannello **Impostazioni** aggiungi un profilo con ID progetto e service account.
+
+Il pallino in basso a sinistra diventa verde quando la connessione funziona. Passandoci sopra
+vedi con quale account sei collegato. L'identità è sempre quella dell'account con cui hai fatto
+l'accesso: nel profilo non va scritta nessuna email personale.
 
 ## Uso
 
@@ -77,6 +79,7 @@ Variabili d'ambiente opzionali: `VERTEX_STUDIO_DATI` (altra cartella dati),
 app/
   __main__.py      avvio del server locale (uvicorn su 127.0.0.1)
   main.py          API FastAPI
+  account.py       accedi/esci tramite gcloud
   impostazioni.py  profili e modelli (file JSON locale)
   vertex.py        credenziali con impersonation e client google-genai
   generazione.py   chat, immagini, video
@@ -88,7 +91,7 @@ app/
 
 | Messaggio | Soluzione |
 |---|---|
-| Login Google mancante | `gcloud auth application-default login` |
+| Accesso mancante o scaduto | premi **Accedi** (oppure `gcloud auth application-default login`) |
 | Non può impersonare il service account | manca il ruolo *Service Account Token Creator* (vedi sopra) |
 | Modello non trovato / 404 | il modello ha cambiato nome o non è disponibile in quella regione: correggilo in *Impostazioni → Modelli* |
 | Nano Banana Pro / Gemini 3 non risponde | quei modelli richiedono la regione `global` |

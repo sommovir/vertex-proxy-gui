@@ -1,0 +1,83 @@
+"""Login e logout Google dall'interfaccia, usando la Google Cloud CLI.
+
+Il login esegue `gcloud auth application-default login`: si apre la pagina di
+Google nel browser, l'utente sceglie il proprio account e gcloud salva le
+credenziali sul computer. Il logout esegue `gcloud auth application-default revoke`.
+L'app non vede né salva mai password.
+"""
+
+import shutil
+import subprocess
+import sys
+import threading
+
+from . import vertex
+
+TIMEOUT_LOGIN = 5 * 60
+INSTALLA = "https://cloud.google.com/sdk/docs/install"
+
+_lock = threading.Lock()
+_login = {"stato": "fermo", "messaggio": ""}  # fermo | in_corso | fatto | errore
+
+
+def _gcloud() -> str | None:
+    return shutil.which("gcloud.cmd" if sys.platform.startswith("win") else "gcloud") or shutil.which("gcloud")
+
+
+def _esegui(argomenti: list[str], timeout: int) -> subprocess.CompletedProcess:
+    eseguibile = _gcloud()
+    if not eseguibile:
+        raise FileNotFoundError(f"Google Cloud CLI non trovata. Installala da {INSTALLA} e riavvia l'app.")
+    extra = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform.startswith("win") else {}
+    return subprocess.run([eseguibile, *argomenti], capture_output=True, text=True, timeout=timeout,
+                          stdin=subprocess.DEVNULL, **extra)
+
+
+def _ultima_riga_utile(testo: str) -> str:
+    righe = [r.strip() for r in (testo or "").splitlines() if r.strip()]
+    errori = [r for r in righe if r.startswith("ERROR")]
+    return (errori or righe or ["Errore sconosciuto"])[-1]
+
+
+def _thread_login():
+    try:
+        r = _esegui(["auth", "application-default", "login"], TIMEOUT_LOGIN)
+        if r.returncode == 0:
+            esito = {"stato": "fatto", "messaggio": "Accesso eseguito"}
+        else:
+            esito = {"stato": "errore", "messaggio": _ultima_riga_utile(r.stderr or r.stdout)}
+    except subprocess.TimeoutExpired:
+        esito = {"stato": "errore", "messaggio": "Accesso non completato entro 5 minuti."}
+    except Exception as e:  # noqa: BLE001
+        esito = {"stato": "errore", "messaggio": str(e)}
+    vertex.azzera()
+    with _lock:
+        _login.update(esito)
+
+
+def avvia_login() -> dict:
+    if not _gcloud():
+        return {"stato": "errore", "messaggio": f"Google Cloud CLI non trovata. Installala da {INSTALLA} e riavvia l'app."}
+    with _lock:
+        if _login["stato"] != "in_corso":
+            _login.update(stato="in_corso", messaggio="Completa l'accesso nella pagina di Google che si è aperta.")
+            threading.Thread(target=_thread_login, daemon=True).start()
+        return dict(_login)
+
+
+def stato_login() -> dict:
+    with _lock:
+        return dict(_login)
+
+
+def logout() -> dict:
+    try:
+        r = _esegui(["auth", "application-default", "revoke", "--quiet"], 60)
+        ok = r.returncode == 0 or "No credentials" in (r.stderr or "")
+        msg = "Disconnesso" if ok else _ultima_riga_utile(r.stderr or r.stdout)
+    except Exception as e:  # noqa: BLE001
+        ok, msg = False, str(e)
+    vertex.azzera()
+    with _lock:
+        _login.update(stato="fermo", messaggio="")
+    return {"ok": ok, "messaggio": msg}

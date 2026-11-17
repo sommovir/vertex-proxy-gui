@@ -65,12 +65,14 @@ def spiega_errore(e: Exception) -> str:
     """Traduce gli errori di autenticazione più comuni in istruzioni chiare."""
     testo = str(e) or e.__class__.__name__
     if isinstance(e, google.auth.exceptions.DefaultCredentialsError):
-        return "Login Google mancante. Esegui nel terminale: gcloud auth application-default login"
+        return "Non hai ancora effettuato l'accesso: premi «Accedi» in basso a sinistra."
     if "invalid_grant" in testo or "Reauthentication" in testo:
-        return "Login Google scaduto. Esegui nel terminale: gcloud auth application-default login"
+        return "L'accesso Google è scaduto: premi «Accedi» in basso a sinistra."
     if "SERVICE_DISABLED" in testo and "iamcredentials" in testo:
         return ("L'API «IAM Service Account Credentials» non è abilitata sul progetto. "
                 "Va abilitata dalla console Google Cloud. Dettaglio: " + testo)
+    if "Gaia id not found" in testo:
+        return "Il service account indicato nel profilo non esiste: controlla l'email nelle Impostazioni."
     if "iam.serviceAccounts.getAccessToken" in testo:
         return ("Questo account non può impersonare il service account: gli serve il ruolo "
                 "«Service Account Token Creator» (oppure accedi con un account che ce l'ha).")

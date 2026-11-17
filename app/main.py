@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import archivio, generazione, impostazioni, vertex
+from . import account, archivio, generazione, impostazioni, vertex
 
 STATIC = Path(__file__).parent / "static"
 
@@ -54,8 +54,27 @@ def salva_impostazioni(dati: dict):
 def stato():
     profilo = impostazioni.profilo_attivo()
     if not profilo:
-        return {"ok": False, "messaggio": "Nessun profilo: apri le Impostazioni e aggiungine uno.", "profilo": None}
+        senza = vertex.verifica({"progetto": "", "service_account": ""})
+        return {"ok": False, "account": senza.get("account", ""), "profilo": None,
+                "messaggio": "Nessun profilo: apri le Impostazioni e aggiungine uno."}
     return {**vertex.verifica(profilo), "profilo": profilo["nome"]}
+
+
+# ---------------------------------------------------------------- account Google
+
+@app.post("/api/login")
+def login():
+    return account.avvia_login()
+
+
+@app.get("/api/login")
+def stato_login():
+    return account.stato_login()
+
+
+@app.post("/api/logout")
+def logout():
+    return account.logout()
 
 
 # ---------------------------------------------------------------- conversazioni
