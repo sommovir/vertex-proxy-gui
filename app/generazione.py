@@ -11,7 +11,7 @@ import uuid
 
 from google.genai import types
 
-from . import archivio, impostazioni, vertex
+from . import archivio, claude, impostazioni, vertex
 
 MAX_MESSAGGI_CONTESTO = 20
 MESSAGGI_CON_FILE = 6          # solo gli ultimi N messaggi rimandano i propri file
@@ -52,7 +52,14 @@ def _esegui(job_id, conv_id, modello_id, testo, allegati, opzioni):
         m = impostazioni.modello(modello_id, imp)
         if not m:
             raise RuntimeError(f"Modello sconosciuto: {modello_id}")
-        client = vertex.client(profilo, impostazioni.regione_per(m, profilo))
+        regione = impostazioni.regione_per(m, profilo)
+
+        if m["tipo"] == "claude":
+            risposta = claude.genera(vertex.claude(profilo, regione), m, conv_id, imp["istruzioni_sistema"])
+            msg = archivio.aggiungi(conv_id, {"ruolo": "modello", "modello": m["id"], **risposta})
+            _fine(job_id, stato="fatto", messaggio=msg)
+            return
+        client = vertex.client(profilo, regione)
 
         if m["tipo"] == "chat":
             risposta = _chat(client, m, conv_id, imp["istruzioni_sistema"], immagini=False, opzioni=opzioni)

@@ -3,4 +3,5 @@ uvicorn>=0.30
 python-multipart>=0.0.9
 google-genai>=1.40
 google-auth>=2.35
+anthropic[vertex]>=2.0
 requests>=2.32

@@ -9,6 +9,7 @@ import threading
 
 import google.auth
 import requests
+from anthropic import AnthropicVertex
 from google import genai
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
@@ -53,6 +54,26 @@ def client(profilo: dict, regione: str) -> genai.Client:
                 credentials=_credenziali(sa),
             )
         return _cache[chiave]
+
+
+def claude(profilo: dict, regione: str) -> AnthropicVertex:
+    """Client Anthropic su Vertex con le stesse credenziali impersonate."""
+    sa = profilo.get("service_account", "")
+    chiave = ("claude", sa, profilo["progetto"], regione)
+    with _lock:
+        if chiave not in _cache:
+            _cache[chiave] = AnthropicVertex(project_id=profilo["progetto"], region=regione,
+                                             credentials=_credenziali(sa))
+        return _cache[chiave]
+
+
+def token(profilo: dict) -> str:
+    """Token di accesso (impersonato) per chiamate REST dirette a Vertex."""
+    with _lock:
+        cred = _credenziali(profilo.get("service_account", ""))
+    if not cred.valid:
+        cred.refresh(Request())
+    return cred.token
 
 
 def azzera():

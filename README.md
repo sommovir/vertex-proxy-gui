@@ -1,6 +1,6 @@
 # Vertex Studio
 
-Client locale per usare **Vertex AI** (Gemini, Nano Banana, Imagen, Veo) dal proprio computer,
+Client locale per usare **Vertex AI** (Gemini, Claude, Nano Banana, Veo) dal proprio computer,
 su **Mac e Windows**, senza API key e senza chiavi JSON.
 
 - **Accesso con impersonation**: ognuno usa il proprio account Google e ottiene un token
@@ -26,7 +26,8 @@ su **Mac e Windows**, senza API key e senza chiavi JSON.
 
    Il service account a sua volta deve avere il ruolo `Vertex AI User` (`roles/aiplatform.user`)
    sul progetto. Sul progetto devono essere abilitate le API **Vertex AI** e
-   **IAM Service Account Credentials**.
+   **IAM Service Account Credentials**. Per usare **Claude** i modelli Anthropic vanno attivati
+   una volta nel **Model Garden** di Vertex AI (pagina del modello → *Enable*).
 
 ## Installazione
 
@@ -62,12 +63,16 @@ l'accesso: nel profilo non va scritta nessuna email personale.
 
 ## Uso
 
-- **Chat**: Gemini, con allegati (immagini, PDF, audio, video brevi).
-- **Immagine**:
-  - *Nano Banana* genera e modifica le immagini e ricorda la conversazione: allega una foto
-    o premi "Riusa immagine" e chiedi le modifiche.
-  - *Imagen* genera da testo, anche più immagini alla volta.
-- **Video**: Veo, da testo o da un'immagine di partenza allegata. Ci vogliono 1–3 minuti.
+- **Chat**: Gemini (allegati: immagini, PDF, audio, video brevi) e Claude (allegati: immagini e PDF).
+- **Immagine**: *Nano Banana* genera e modifica le immagini e ricorda la conversazione: allega
+  una foto o premi "Riusa immagine" e chiedi le modifiche. Imagen è stato ritirato da Google
+  (giugno 2026), ma il tipo resta disponibile se ne servisse uno.
+- **Video**: Veo 3.1, da testo o da un'immagine di partenza allegata. Ci vogliono 1–3 minuti.
+
+I modelli predefiniti sono aggiornati al 17/11/2026: Gemini 4 Carbon/Argon, Gemini 3.8 Flash,
+Claude Opus/Sonnet/Haiku 5.5, Nano Banana 2/Pro/2.1, Veo 3.1. Quando l'app si aggiorna con
+`git pull`, i modelli nuovi vengono aggiunti alla tua lista e quelli ritirati tolti; quelli
+che hai aggiunto tu restano.
 
 Le conversazioni eliminate finiscono in `~/VertexStudio/cestino`.
 
@@ -78,8 +83,9 @@ Le conversazioni eliminate finiscono in `~/VertexStudio/cestino`.
   L'app lo aggiunge e controlla subito che sia disponibile.
 - In **Impostazioni → Modelli**:
   - **Verifica modelli** segna ✓/✗ su ogni modello della lista, senza consumare credito;
-  - **Cerca modelli disponibili** elenca i Gemini/Imagen/Veo visibili al progetto e li aggiunge
-    con un clic;
+  - **Cerca modelli disponibili** elenca i Gemini/Veo visibili al progetto e i **Claude
+    abilitati nel Model Garden**, e li aggiunge con un clic (per Claude la verifica usa il
+    conteggio token, gratuito);
   - si può anche rinominare, cambiare regione o togliere un modello.
 
 ## Dove sono i dati
@@ -105,6 +111,7 @@ app/
   main.py          API FastAPI
   account.py       accedi/esci tramite gcloud
   modelli.py       verifica e ricerca dei modelli disponibili
+  claude.py        chat con Claude (SDK anthropic[vertex])
   impostazioni.py  profili e modelli (file JSON locale)
   vertex.py        credenziali con impersonation e client google-genai
   generazione.py   chat, immagini, video

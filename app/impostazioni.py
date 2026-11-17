@@ -19,20 +19,40 @@ FILE = CARTELLA_DATI / "impostazioni.json"
 #   gemini-immagine  -> Gemini che genera/modifica immagini (Nano Banana)
 #   imagen           -> Imagen, testo -> immagine
 #   veo              -> Veo, testo/immagine -> video
-TIPI = ["chat", "gemini-immagine", "imagen", "veo"]
+#   claude           -> Claude (Anthropic) su Vertex, chat con allegati
+TIPI = ["chat", "claude", "gemini-immagine", "imagen", "veo"]
 
-# I nomi dei modelli possono cambiare nel tempo: si correggono dal pannello.
+# Elenco aggiornato al 17/11/2026 (fonte: pagina «Model versions and lifecycle» di Vertex AI).
+# I nomi cambiano nel tempo: si correggono o si aggiungono dal pannello Impostazioni → Modelli.
+# Regione vuota = quella del profilo (global per Gemini, us-central1 per Veo).
 MODELLI_PREDEFINITI = [
-    {"id": "gemini-2.5-flash", "nome": "Gemini 2.5 Flash", "tipo": "chat", "regione": ""},
-    {"id": "gemini-2.5-pro", "nome": "Gemini 2.5 Pro", "tipo": "chat", "regione": ""},
-    {"id": "gemini-4-carbon", "nome": "Gemini 4 Carbon", "tipo": "chat", "regione": "global"},
-    {"id": "gemini-2.5-flash-image", "nome": "Nano Banana", "tipo": "gemini-immagine", "regione": ""},
-    {"id": "gemini-3-pro-image-preview", "nome": "Nano Banana Pro", "tipo": "gemini-immagine", "regione": "global"},
-    {"id": "imagen-4.0-generate-001", "nome": "Imagen 4", "tipo": "imagen", "regione": ""},
-    {"id": "imagen-4.0-ultra-generate-001", "nome": "Imagen 4 Ultra", "tipo": "imagen", "regione": ""},
-    {"id": "veo-3.0-generate-001", "nome": "Veo 3", "tipo": "veo", "regione": ""},
-    {"id": "veo-3.0-fast-generate-001", "nome": "Veo 3 Fast", "tipo": "veo", "regione": ""},
+    {"id": "gemini-4-carbon", "nome": "Gemini 4 Carbon", "tipo": "chat", "regione": ""},
+    {"id": "gemini-4-argon", "nome": "Gemini 4 Argon", "tipo": "chat", "regione": ""},
+    {"id": "gemini-3.8-flash", "nome": "Gemini 3.8 Flash", "tipo": "chat", "regione": ""},
+    {"id": "gemini-3.5-flash-lite", "nome": "Gemini 3.5 Flash Lite (economico)", "tipo": "chat", "regione": ""},
+    {"id": "claude-opus-5-5", "nome": "Claude Opus 5.5", "tipo": "claude", "regione": ""},
+    {"id": "claude-sonnet-5-5", "nome": "Claude Sonnet 5.5", "tipo": "claude", "regione": ""},
+    {"id": "claude-haiku-5-5", "nome": "Claude Haiku 5.5 (economico)", "tipo": "claude", "regione": ""},
+    {"id": "gemini-3.1-flash-image", "nome": "Nano Banana 2", "tipo": "gemini-immagine", "regione": ""},
+    {"id": "gemini-3-pro-image", "nome": "Nano Banana Pro", "tipo": "gemini-immagine", "regione": ""},
+    {"id": "gemini-nano-banana-2.1", "nome": "Nano Banana 2.1", "tipo": "gemini-immagine", "regione": ""},
+    {"id": "gemini-3.1-flash-lite-image", "nome": "Nano Banana 2 Lite (economico)", "tipo": "gemini-immagine", "regione": ""},
+    {"id": "veo-3.1-generate-001", "nome": "Veo 3.1", "tipo": "veo", "regione": ""},
+    {"id": "veo-3.1-fast-generate-001", "nome": "Veo 3.1 Fast", "tipo": "veo", "regione": ""},
 ]
+
+# Ritirati da Google: tolti in automatico dalle impostazioni salvate.
+MODELLI_RITIRATI = {
+    "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-2.0-flash-lite",
+    "gemini-3-pro-preview", "gemini-3-pro-image-preview",
+    "imagen-4.0-generate-001", "imagen-4.0-ultra-generate-001", "imagen-4.0-fast-generate-001",
+    "imagen-3.0-generate-001", "imagen-3.0-generate-002",
+    "veo-3.0-generate-001", "veo-3.0-fast-generate-001", "veo-2.0-generate-001",
+}
+
+# Da aumentare quando si aggiorna MODELLI_PREDEFINITI: le installazioni esistenti ricevono
+# una volta sola i modelli nuovi (quelli aggiunti o tolti a mano restano come sono).
+VERSIONE_MODELLI = 3
 
 _lock = threading.Lock()
 
@@ -43,7 +63,12 @@ def _predefinite() -> dict:
         "profilo_attivo": None,
         "modelli": [dict(m) for m in MODELLI_PREDEFINITI],
         "istruzioni_sistema": "",
+        "scelte": {},  # per modalità (chat/immagine/video): ultimo modello e formato usati
+        "versione_modelli": VERSIONE_MODELLI,
     }
+
+
+MODALITA = ("chat", "immagine", "video")
 
 
 def leggi() -> dict:
@@ -55,11 +80,27 @@ def leggi() -> dict:
         except (OSError, json.JSONDecodeError):
             return _predefinite()
     base = _predefinite()
+    base["versione_modelli"] = 1  # file vecchi senza versione
     base.update({k: v for k, v in dati.items() if k in base})
+    if base["versione_modelli"] < VERSIONE_MODELLI:
+        base = _aggiorna_modelli(base)
+        try:
+            salva(base)
+        except (OSError, ValueError):
+            pass
     return base
 
 
+def _aggiorna_modelli(dati: dict) -> dict:
+    modelli = [m for m in dati.get("modelli") or [] if m.get("id") not in MODELLI_RITIRATI]
+    presenti = {m.get("id") for m in modelli}
+    modelli += [dict(m) for m in MODELLI_PREDEFINITI if m["id"] not in presenti]
+    return {**dati, "modelli": modelli, "versione_modelli": VERSIONE_MODELLI}
+
+
 def salva(dati: dict) -> dict:
+    if "scelte" not in dati:  # il pannello non le manda: si conservano quelle salvate
+        dati = {**dati, "scelte": leggi()["scelte"]}
     pulite = _valida(dati)
     with _lock:
         CARTELLA_DATI.mkdir(parents=True, exist_ok=True)
@@ -118,7 +159,26 @@ def _valida(dati: dict) -> dict:
         "profilo_attivo": attivo,
         "modelli": modelli or [dict(m) for m in MODELLI_PREDEFINITI],
         "istruzioni_sistema": _testo(dati.get("istruzioni_sistema")),
+        "scelte": _valida_scelte(dati.get("scelte")),
+        "versione_modelli": VERSIONE_MODELLI,
     }
+
+
+def _valida_scelte(scelte) -> dict:
+    pulite = {}
+    for m in MODALITA:
+        voce = (scelte or {}).get(m) or {}
+        pulite[m] = {k: _testo(voce.get(k)) for k in ("modello", "formato") if _testo(voce.get(k))}
+    return pulite
+
+
+def salva_scelta(modalita: str, valori: dict) -> dict:
+    if modalita not in MODALITA:
+        raise ValueError(f"Modalità non valida: {modalita}")
+    dati = leggi()
+    dati["scelte"].setdefault(modalita, {}).update(
+        {k: _testo(v) for k, v in valori.items() if k in ("modello", "formato")})
+    return salva(dati)["scelte"]
 
 
 def profilo_attivo(dati: dict | None = None) -> dict | None:
@@ -137,6 +197,6 @@ def modello(mid: str, dati: dict | None = None) -> dict | None:
 def regione_per(modello_cfg: dict, profilo: dict) -> str:
     if modello_cfg.get("regione"):
         return modello_cfg["regione"]
-    if modello_cfg["tipo"] in ("chat", "gemini-immagine"):
+    if modello_cfg["tipo"] in ("chat", "claude", "gemini-immagine"):
         return profilo["regione_gemini"]
     return profilo["regione"]

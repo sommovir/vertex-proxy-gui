@@ -5,7 +5,7 @@ import { initImpostazioni, apriImpostazioni } from "./impostazioni.js";
 import { initAccount, aggiornaAccount } from "./account.js";
 import { initModelloRapido, apriModelloRapido, VALORE_ALTRO } from "./modello-rapido.js";
 
-const TIPI_PER_MODALITA = { chat: ["chat"], immagine: ["gemini-immagine", "imagen"], video: ["veo"] };
+const TIPI_PER_MODALITA = { chat: ["chat", "claude"], immagine: ["gemini-immagine", "imagen"], video: ["veo"] };
 const FORMATI = {
   immagine: ["1:1", "16:9", "9:16", "4:3", "3:4"],
   video: ["16:9", "9:16"],
@@ -15,7 +15,7 @@ const SEGNAPOSTO = {
   immagine: "Descrivi l'immagine da creare, o allegane una da modificare…",
   video: "Descrivi il video (puoi allegare un'immagine di partenza)…",
 };
-const MODALITA_DI_TIPO = { "chat": "chat", "gemini-immagine": "immagine", "imagen": "immagine", "veo": "video" };
+const MODALITA_DI_TIPO = { "chat": "chat", "claude": "chat", "gemini-immagine": "immagine", "imagen": "immagine", "veo": "video" };
 
 const stato = {
   imp: null,
@@ -37,8 +37,8 @@ initImpostazioni(async () => {
 
 initAccount(() => verificaStato());
 initModelloRapido(async (m) => {
-  salvaLocale(`vs.modello.${MODALITA_DI_TIPO[m.tipo]}`, m.id);
   stato.imp = await api("/api/impostazioni");
+  await salvaScelta(MODALITA_DI_TIPO[m.tipo], { modello: m.id });
   impostaModalita(MODALITA_DI_TIPO[m.tipo]);
 });
 await caricaImpostazioni();
@@ -87,16 +87,30 @@ function impostaModalita(m) {
   salvaLocale("vs.modalita", m);
   for (const b of $("#modalita").children) b.classList.toggle("attivo", b.dataset.m === m);
   const modelli = stato.imp.modelli.filter((x) => TIPI_PER_MODALITA[m].includes(x.tipo));
-  const scelto = leggiLocale(`vs.modello.${m}`, null);
+  const scelto = sceltaSalvata(m, "modello");
   $("#modello").innerHTML = modelli.length
     ? modelli.map((x) => `<option value="${esc(x.id)}" ${x.id === scelto ? "selected" : ""}>${esc(x.nome)}</option>`).join("")
     : `<option value="">Nessun modello configurato</option>`;
   $("#modello").insertAdjacentHTML("beforeend", `<option value="${VALORE_ALTRO}">＋ Altro modello…</option>`);
   if ($("#modello").value === VALORE_ALTRO) $("#modello").selectedIndex = 0;
   $("#formato").innerHTML = (FORMATI[m] || []).map((f) => `<option>${f}</option>`).join("");
-  $("#formato").value = leggiLocale(`vs.formato.${m}`, FORMATI[m]?.[0]) || "";
+  $("#formato").value = sceltaSalvata(m, "formato") || FORMATI[m]?.[0] || "";
   $("#input").placeholder = SEGNAPOSTO[m];
   aggiornaOpzioni();
+}
+
+// Ultimo modello/formato usati per modalità: salvati in impostazioni.json (fallback: vecchio localStorage).
+function sceltaSalvata(modalita, chiave) {
+  return stato.imp.scelte?.[modalita]?.[chiave] || leggiLocale(`vs.${chiave}.${modalita}`, null);
+}
+
+async function salvaScelta(modalita, valori) {
+  stato.imp.scelte = { ...stato.imp.scelte, [modalita]: { ...stato.imp.scelte?.[modalita], ...valori } };
+  try {
+    stato.imp.scelte = await api(`/api/scelte/${modalita}`, { method: "PUT", json: valori });
+  } catch (e) {
+    toast(`Scelta non salvata: ${e.message}`);
+  }
 }
 
 function modelloScelto() {
@@ -114,15 +128,15 @@ function aggiornaOpzioni() {
 $("#modalita").onclick = (e) => e.target.dataset.m && impostaModalita(e.target.dataset.m);
 $("#modello").onchange = () => {
   if ($("#modello").value === VALORE_ALTRO) {
-    $("#modello").value = leggiLocale(`vs.modello.${stato.modalita}`, null) || "";
+    $("#modello").value = sceltaSalvata(stato.modalita, "modello") || "";
     if (!$("#modello").value) $("#modello").selectedIndex = 0;
     apriModelloRapido(stato.modalita);
     return;
   }
-  salvaLocale(`vs.modello.${stato.modalita}`, $("#modello").value);
+  salvaScelta(stato.modalita, { modello: $("#modello").value });
   aggiornaOpzioni();
 };
-$("#formato").onchange = () => salvaLocale(`vs.formato.${stato.modalita}`, $("#formato").value);
+$("#formato").onchange = () => salvaScelta(stato.modalita, { formato: $("#formato").value });
 
 // ---------------------------------------------------------------- elenco conversazioni
 
@@ -266,7 +280,7 @@ function durata(inizio) {
 }
 
 function htmlAttesa(a) {
-  if (a.tipo === "chat") return `<div class="msg modello attesa"><span class="puntini"><span></span><span></span><span></span></span></div>`;
+  if (a.tipo === "chat" || a.tipo === "claude") return `<div class="msg modello attesa"><span class="puntini"><span></span><span></span><span></span></span></div>`;
   const cosa = a.tipo === "veo" ? "Genero il video (di solito 1–3 minuti)" : "Genero l'immagine";
   return `<div class="msg modello"><div class="attesa"><div class="scheletro"></div>
     <span>${cosa}… <span data-inizio="${a.inizio}">${durata(a.inizio)}</span></span></div></div>`;
@@ -286,7 +300,7 @@ function disegnaMessaggi() {
   if (!stato.messaggi.length && !attese.length) {
     box.innerHTML = `<div class="benvenuto">
       <h2>Cosa creiamo oggi?</h2>
-      <p>Chat con Gemini, immagini con Nano Banana e Imagen, video con Veo. Tutto salvato solo su questo computer.</p>
+      <p>Chat con Gemini e Claude, immagini con Nano Banana, video con Veo. Tutto salvato solo su questo computer.</p>
       <div class="suggerimenti">
         <button data-esempio="chat|Riassumi in 5 punti i vantaggi dell'impersonation dei service account">
           <b>Chat</b><span>Riassumi i vantaggi dell'impersonation…</span></button>

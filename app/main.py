@@ -66,6 +66,14 @@ def modelli_disponibili():
         raise HTTPException(400, str(e)) from e
 
 
+@app.put("/api/scelte/{modalita}")
+def salva_scelta(modalita: str, valori: dict):
+    try:
+        return impostazioni.salva_scelta(modalita, valori)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
 @app.get("/api/stato")
 def stato():
     profilo = impostazioni.profilo_attivo()

@@ -4,6 +4,7 @@ import { $, api, esc } from "./util.js";
 
 const ETICHETTE_TIPO = {
   "chat": "Chat (Gemini)",
+  "claude": "Chat (Claude)",
   "gemini-immagine": "Immagine (Gemini / Nano Banana)",
   "imagen": "Immagine (Imagen)",
   "veo": "Video (Veo)",
