@@ -25,7 +25,18 @@ su **Mac e Windows**, senza API key e senza chiavi JSON.
    ```
 
    Il service account a sua volta deve avere il ruolo `Vertex AI User` (`roles/aiplatform.user`)
-   sul progetto, e l'API Vertex AI deve essere abilitata.
+   sul progetto. Sul progetto devono essere abilitate le API **Vertex AI** e
+   **IAM Service Account Credentials**.
+
+## Installazione
+
+```bash
+git clone https://github.com/sommovir/vertex-proxy-gui.git
+cd vertex-proxy-gui
+```
+
+Per aggiornare a una versione nuova: `git pull` nella stessa cartella, poi riavvia l'app.
+I dati in `~/VertexStudio` non vengono toccati.
 
 ## Avvio
 
@@ -35,6 +46,8 @@ su **Mac e Windows**, senza API key e senza chiavi JSON.
 
 Al primo avvio vengono installate le librerie in `.venv` (circa un minuto). Poi si apre il browser su
 <http://127.0.0.1:8765>. L'app ascolta solo su questo computer.
+
+Per chiuderla: `Ctrl+C` nella finestra del terminale che si è aperta, oppure chiudi la finestra.
 
 Al primo avvio:
 
@@ -92,6 +105,10 @@ app/
 | Messaggio | Soluzione |
 |---|---|
 | Accesso mancante o scaduto | premi **Accedi** (oppure `gcloud auth application-default login`) |
-| Non può impersonare il service account | manca il ruolo *Service Account Token Creator* (vedi sopra) |
+| Google Cloud CLI non trovata | installala (vedi Prerequisiti) e riavvia l'app |
+| Non può impersonare il service account | al tuo account manca il ruolo *Service Account Token Creator* (vedi sopra) |
+| Il service account non esiste | controlla l'email del service account in *Impostazioni → Profili* |
+| API «IAM Service Account Credentials» non abilitata | va abilitata sul progetto dalla console Google Cloud |
+| La pagina non si apre / porta occupata | un'altra istanza è già aperta, oppure avvia con `VERTEX_STUDIO_PORTA=8770` |
 | Modello non trovato / 404 | il modello ha cambiato nome o non è disponibile in quella regione: correggilo in *Impostazioni → Modelli* |
 | Nano Banana Pro / Gemini 3 non risponde | quei modelli richiedono la regione `global` |
