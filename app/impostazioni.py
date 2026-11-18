@@ -67,6 +67,7 @@ def _predefinite() -> dict:
         "istruzioni_sistema": "",
         "scelte": {},  # per modalità (chat/immagine/video): ultimo modello e formato usati
         "versione_modelli": VERSIONE_MODELLI,
+        "gcloud_path": "",  # facoltativo: percorso di gcloud se non è nel PATH
     }
 
 
@@ -101,8 +102,8 @@ def _aggiorna_modelli(dati: dict) -> dict:
 
 
 def salva(dati: dict) -> dict:
-    if "scelte" not in dati:  # il pannello non le manda: si conservano quelle salvate
-        dati = {**dati, "scelte": leggi()["scelte"]}
+    # Le chiavi non inviate (es. le scelte, che il pannello non manda) restano quelle salvate.
+    dati = {**leggi(), **dati}
     pulite = _valida(dati)
     with _lock:
         CARTELLA_DATI.mkdir(parents=True, exist_ok=True)
@@ -163,6 +164,7 @@ def _valida(dati: dict) -> dict:
         "istruzioni_sistema": _testo(dati.get("istruzioni_sistema")),
         "scelte": _valida_scelte(dati.get("scelte")),
         "versione_modelli": VERSIONE_MODELLI,
+        "gcloud_path": _testo(dati.get("gcloud_path")),
     }
 
 

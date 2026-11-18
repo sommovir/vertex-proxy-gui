@@ -96,6 +96,11 @@ def stato_login():
     return account.stato_login()
 
 
+@app.post("/api/gcloud/verifica")
+def verifica_gcloud(corpo: dict):
+    return account.prova_percorso(str(corpo.get("percorso") or ""))
+
+
 @app.post("/api/logout")
 def logout():
     return account.logout()

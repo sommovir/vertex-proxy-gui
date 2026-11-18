@@ -128,6 +128,15 @@
         <label class="campo">Istruzioni di sistema (per i modelli Gemini)
           <textarea id="istruzioni" rows="5" placeholder="Es. Rispondi sempre in italiano."></textarea>
         </label>
+        <label class="campo">Percorso di gcloud (facoltativo)
+          <div class="riga-campo">
+            <input type="text" id="gcloud-path" placeholder="vuoto = ricerca automatica, es. /Users/nome/google-cloud-sdk">
+            <button type="button" class="btn ghost" id="verifica-gcloud">Verifica</button>
+          </div>
+        </label>
+        <p class="aiuto" id="esito-gcloud">Serve solo se gcloud è installato ma l'app non lo trova (es. Mac vecchi
+          o cartella scaricata a mano). Va bene il file <code>gcloud</code>, la cartella <code>google-cloud-sdk</code>
+          o la sua sottocartella <code>bin</code>.</p>
         <p class="aiuto">Cartella dati: <code id="cartella-dati"></code></p>
       </section>
     </div>

@@ -12,7 +12,7 @@ import sys
 import threading
 from pathlib import Path
 
-from . import vertex
+from . import impostazioni, vertex
 
 TIMEOUT_LOGIN = 5 * 60
 INSTALLA = "https://cloud.google.com/sdk/docs/install"
@@ -36,7 +36,21 @@ _PERCORSI_NOTI = [
 ]
 
 
+def _da_percorso(scritto: str) -> Path | None:
+    """Accetta il file gcloud, la cartella bin o la cartella google-cloud-sdk."""
+    p = Path(scritto.strip().strip('"').strip("'")).expanduser()
+    nomi = ["gcloud.cmd", "gcloud"] if sys.platform.startswith("win") else ["gcloud"]
+    candidati = [p] + [p / n for n in nomi] + [p / "bin" / n for n in nomi]
+    return next((c for c in candidati if c.is_file()), None)
+
+
 def _gcloud() -> str | None:
+    manuale = impostazioni.leggi().get("gcloud_path")
+    if manuale:
+        trovato = _da_percorso(manuale)
+        if not trovato:
+            raise FileNotFoundError(f"gcloud non trovato in «{manuale}» (Impostazioni → Generale).")
+        return str(trovato)
     trovato = shutil.which("gcloud.cmd" if sys.platform.startswith("win") else "gcloud") or shutil.which("gcloud")
     if trovato:
         return trovato
@@ -50,10 +64,43 @@ def _gcloud() -> str | None:
 def _esegui(argomenti: list[str], timeout: int) -> subprocess.CompletedProcess:
     eseguibile = _gcloud()
     if not eseguibile:
-        raise FileNotFoundError(f"Google Cloud CLI non trovata. Installala da {INSTALLA} e riavvia l'app.")
+        raise FileNotFoundError(f"Google Cloud CLI non trovata. Installala da {INSTALLA}, "
+                                "oppure indica dove si trova in Impostazioni → Generale.")
+    return _lancia(eseguibile, argomenti, timeout)
+
+
+def _lancia(eseguibile: str, argomenti: list[str], timeout: int) -> subprocess.CompletedProcess:
     extra = {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform.startswith("win") else {}
-    return subprocess.run([eseguibile, *argomenti], capture_output=True, text=True, timeout=timeout,
-                          stdin=subprocess.DEVNULL, **extra)
+    comando = [eseguibile, *argomenti]
+    try:
+        return subprocess.run(comando, capture_output=True, text=True, timeout=timeout,
+                              stdin=subprocess.DEVNULL, **extra)
+    except PermissionError:
+        # File copiato senza permesso di esecuzione (Mac/Linux): lo si lancia tramite la shell.
+        return subprocess.run(["sh", *comando], capture_output=True, text=True, timeout=timeout,
+                              stdin=subprocess.DEVNULL)
+
+
+def prova_percorso(scritto: str) -> dict:
+    """Verifica un percorso di gcloud inserito a mano (vuoto = ricerca automatica)."""
+    try:
+        if scritto.strip():
+            trovato = _da_percorso(scritto)
+            if not trovato:
+                return {"ok": False, "messaggio": "Nessun gcloud in questo percorso: indica il file gcloud "
+                        "o la cartella google-cloud-sdk (o la sua sottocartella bin)."}
+            eseguibile = str(trovato)
+        else:
+            eseguibile = _gcloud()
+            if not eseguibile:
+                return {"ok": False, "messaggio": f"gcloud non trovato automaticamente. Indica il percorso o installalo da {INSTALLA}."}
+        r = _lancia(eseguibile, ["--version"], 60)
+        if r.returncode != 0:
+            return {"ok": False, "messaggio": f"{eseguibile} non parte: {_ultima_riga_utile(r.stderr or r.stdout)}"}
+        versione = next((x for x in r.stdout.splitlines() if x.strip()), "")
+        return {"ok": True, "messaggio": f"Trovato: {eseguibile} ({versione})"}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "messaggio": str(e)}
 
 
 def _ultima_riga_utile(testo: str) -> str:
@@ -79,8 +126,13 @@ def _thread_login():
 
 
 def avvia_login() -> dict:
-    if not _gcloud():
-        return {"stato": "errore", "messaggio": f"Google Cloud CLI non trovata. Installala da {INSTALLA} e riavvia l'app."}
+    try:
+        trovato = _gcloud()
+    except FileNotFoundError as e:
+        return {"stato": "errore", "messaggio": str(e)}
+    if not trovato:
+        return {"stato": "errore", "messaggio": f"Google Cloud CLI non trovata. Installala da {INSTALLA}, "
+                "oppure indica dove si trova in Impostazioni → Generale."}
     with _lock:
         if _login["stato"] != "in_corso":
             _login.update(stato="in_corso", messaggio="Completa l'accesso nella pagina di Google che si è aperta.")

@@ -47,6 +47,19 @@ export function initImpostazioni(callback) {
     disegnaModelli();
   };
   $("#verifica-modelli").onclick = verificaModelli;
+  $("#verifica-gcloud").onclick = async () => {
+    const esito = $("#esito-gcloud");
+    esito.className = "aiuto";
+    esito.textContent = "Verifico…";
+    try {
+      const r = await api("/api/gcloud/verifica", { method: "POST", json: { percorso: $("#gcloud-path").value } });
+      esito.className = `aiuto ${r.ok ? "ok" : "ko"}`;
+      esito.textContent = (r.ok ? "✓ " : "✗ ") + r.messaggio + (r.ok ? " — ricorda di premere Salva." : "");
+    } catch (e) {
+      esito.className = "aiuto ko";
+      esito.textContent = e.message;
+    }
+  };
   $("#cerca-modelli").onclick = cercaModelli;
   $("#disponibili").addEventListener("click", (e) => {
     const b = e.target.closest("[data-aggiungi]");
@@ -88,6 +101,8 @@ export async function apriImpostazioni(scheda = "profili") {
   disegnaProfili();
   disegnaModelli();
   $("#istruzioni").value = bozza.istruzioni_sistema || "";
+  $("#gcloud-path").value = bozza.gcloud_path || "";
+  $("#esito-gcloud").className = "aiuto";
   $("#cartella-dati").textContent = bozza.cartella_dati;
   $("#err-impostazioni").textContent = "";
   $(`#schede [data-s=${scheda}]`).click();
@@ -145,6 +160,7 @@ function leggiForm() {
     m.id = normalizzaId(m.id);
   }
   bozza.istruzioni_sistema = $("#istruzioni").value;
+  bozza.gcloud_path = $("#gcloud-path").value.trim();
 }
 
 async function verificaModelli() {
@@ -196,8 +212,8 @@ async function salva() {
   const btn = $("#salva-impostazioni");
   btn.disabled = true;
   try {
-    const { profili, profilo_attivo, modelli, istruzioni_sistema } = bozza;
-    await api("/api/impostazioni", { method: "PUT", json: { profili, profilo_attivo, modelli, istruzioni_sistema } });
+    const { profili, profilo_attivo, modelli, istruzioni_sistema, gcloud_path } = bozza;
+    await api("/api/impostazioni", { method: "PUT", json: { profili, profilo_attivo, modelli, istruzioni_sistema, gcloud_path } });
     $("#dlg-impostazioni").close();
     alSalvataggio();
   } catch (e) {

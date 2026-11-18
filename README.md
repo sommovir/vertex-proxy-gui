@@ -58,6 +58,12 @@ Funziona, con tre accortezze:
   Se macOS dice che il file «proviene da Internet» o «non può essere verificato»: tasto destro →
   *Apri* → *Apri*. In alternativa si può sempre avviare da terminale con `bash avvia.command`.
 
+**gcloud installato ma non trovato** (succede su Mac vecchi, o se l'SDK è stato scaricato e
+scompattato a mano senza lanciare `install.sh`): in *Impostazioni → Generale → Percorso di gcloud*
+indica il file `gcloud`, la cartella `google-cloud-sdk` o la sua sottocartella `bin`
+(es. `/Users/nome/google-cloud-sdk`), premi **Verifica** e poi **Salva**. Funziona anche se il file
+ha perso il permesso di esecuzione.
+
 La cartella `.venv` copiata da un altro sistema non funziona: `avvia` se ne accorge e la ricrea
 da sola al primo avvio (circa un minuto). Copiandola, conviene comunque lasciarla fuori.
 
@@ -154,7 +160,7 @@ app/
 | Messaggio | Soluzione |
 |---|---|
 | Accesso mancante o scaduto | premi **Accedi** (oppure `gcloud auth application-default login`) |
-| Google Cloud CLI non trovata | installala (vedi Prerequisiti) e riavvia l'app |
+| Google Cloud CLI non trovata | installala (vedi Prerequisiti) e riavvia l'app; se è installata ma l'app non la vede, indicane il percorso in *Impostazioni → Generale → Percorso di gcloud* |
 | Non può impersonare il service account | al tuo account manca il ruolo *Service Account Token Creator* (vedi sopra) |
 | Il service account non esiste | controlla l'email del service account in *Impostazioni → Profili* |
 | API «IAM Service Account Credentials» non abilitata | va abilitata sul progetto dalla console Google Cloud |
